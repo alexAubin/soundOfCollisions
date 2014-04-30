@@ -7,6 +7,7 @@
 using namespace std;
 
 #include "Particle.h"
+#include "SoundModel.h"
 
 int main()
 {
@@ -36,8 +37,8 @@ int main()
     SndfileHandle outfile(outfilename, SFM_WRITE, format, channels, sampleRate);
     if (not outfile) return -1;
 
-    // prepare a numberOfEvents * seconds buffer and write it
-    const int size = sampleRate * events.size();
+    float eventPerSeconds = 0.333;
+    const int size = sampleRate * events.size() / eventPerSeconds;
     float sample[size];
     for (int i=0; i<size; i++) 
     {
@@ -45,9 +46,9 @@ int main()
         sample[i]= 0;
 
         // Current plan is to have :
-        // E : amplitude
+        // E   : amplitude
         // Eta : pitch
-        // Id : harmonics + enveloppe + basis freq
+        // Id  : harmonics + enveloppe + basis freq
 
         /*
         for (unsigned int j = 0 ; j < harmonics.size() ; j++)
