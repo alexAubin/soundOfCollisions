@@ -43,7 +43,7 @@ int main()
     for (int i=0; i<size; i++) 
     {
         //int currentEvent = i / sampleRate;
-        sample[i]= 0;
+        sample[i] = 0;
 
         // Current plan is to have :
         // E   : amplitude

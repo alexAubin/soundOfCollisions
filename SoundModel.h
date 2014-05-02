@@ -1,17 +1,19 @@
 #ifndef SOUNDMODEL_H
 #define SOUNDMODEL_H
 
+#include "SoundSpectra.h"
+
 class SoundModel
 {
     public:
         
-        SoundModel(vector<pair<float,float> > harmonics_,
-        float (*enveloppe_)(float),
-        float length_,
-        float amplitude_,
-        float pitchModifier_)
+        SoundModel(SoundSpectra spectra_,
+                   float (*enveloppe_)(float),
+                   float length_,
+                   float amplitude_,
+                   float pitchModifier_) :
+        spectra(spectra_)
         {
-            harmonics     = harmonics_;
             enveloppe     = enveloppe_;
             length        = length_;
             amplitude     = amplitude_;
@@ -23,11 +25,11 @@ class SoundModel
         float play(float t)  
         { 
             float value = 0;
-            for (unsigned int i = 0 ; i < harmonics.size() ; i++)
+            for (int i = 0 ; i < spectra.getNComponents() ; i++)
             {
-                float h_frequency = harmonics[i].first;
-                float h_amplitude = harmonics[i].second;
-                value += h_amplitude * sin(t*(2*M_PI) * h_frequency * pitchModifier);
+                float h_frequency = spectra.getHarmonics(i);
+                float h_amplitude = spectra.getAmplitude(i);
+                value += h_amplitude * sin(t * (2*M_PI) * h_frequency * pitchModifier);
             }
             value *= amplitude * enveloppe(t/length);
             return value;
@@ -35,7 +37,7 @@ class SoundModel
 
     private:
 
-        vector<pair<float,float> > harmonics;
+        SoundSpectra spectra;
         float (*enveloppe)(float);
         float length;
         float amplitude;
@@ -43,7 +45,7 @@ class SoundModel
 };
 
 
-float enveloppeADSR(float t_A, float t_D, float l_s, float t_R, float t)
+float enveloppeADSR(float t_A, float t_D, float l_S, float t_R, float t)
 {
     if ((t < 0) || (t > 1)) 
         return 0;
@@ -52,13 +54,13 @@ float enveloppeADSR(float t_A, float t_D, float l_s, float t_R, float t)
         return t / t_A;
     
     if ((t > t_A) && (t < t_D))
-        return (t * (l_s - 1) + t_D - l_s * t_A) / (t_D - t_A);
+        return (t * (l_S - 1) + t_D - l_S * t_A) / (t_D - t_A);
 
     if ((t >= t_D) && (t <= t_R))
-        return l_s;
+        return l_S;
 
     if (t > t_R)
-        return l_s * (t - 1) / (t_R - 1);
+        return l_S * (t - 1) / (t_R - 1);
 
     return 0;
 }
