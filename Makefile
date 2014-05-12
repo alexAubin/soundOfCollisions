@@ -1,11 +1,12 @@
 ObjSuf        = o
 SrcSuf        = cpp
-ExeSuf        = exe
+ExeSuf        = run
 
 DEFINES       = 
 
 CXX           = g++
-CXXFLAGS      = -O -Wall -fPIC $(DEFINES) -Wno-unused-result -Wshadow
+CXXFLAGS      = --std=c++0x
+CXXFLAGS      += -O -Wall -fPIC $(DEFINES) -Wno-unused-result -Wshadow
 CXXFLAGS      += -I./
 
 LDFLAGS       = -g -O -Wall -fPIC -Wl,--no-undefined 
@@ -24,7 +25,7 @@ SOURCES       = $(wildcard *.$(SrcSuf))
 OBJECTS       = $(SOURCES:.$(SrcSuf)=.$(ObjSuf))
 EXECUTABLES   = $(SOURCES:.$(SrcSuf)=.$(ExeSuf))
 #------------------------------------------------------------------------------
-DEFAULT_TARGET = soundProducer
+DEFAULT_TARGET = main
 #------------------------------------------------------------------------------
 
 all: compile run
