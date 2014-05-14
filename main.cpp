@@ -10,10 +10,33 @@ using namespace std;
 #include "SoundModel.h"
 #include "SoundSpectra.h"
 
-float enveloppeTest(float t)
-{
-    return enveloppeADSR(0.04,0.12,0.3,0.18,t);
-}
+
+// Sound model for muons
+float pitchMuon = 400;
+SoundSpectra spectraMuon({1,   2,   3,   4,    5   },
+                         {1.0, 0.2, 0.1, 0.05, 0.01} );
+float enveloppeMuon(float t) { return enveloppeADSR(0.03,0.09,0.15,0.18,t); }
+
+// Sound model for electrons
+float pitchElectron = 330;
+SoundSpectra spectraElectron({1,   2,   3,   4,   5   } ,
+                             {1.0, 0.5, 0.3, 0.1, 0.05} );
+float enveloppeElectron(float t) { return enveloppeADSR(0.03,0.09,0.15,0.18,t); }
+
+// Sound model for jets
+float pitchJet = 170;
+SoundSpectra spectraJet({1,   2,   3,   4,    5   } ,
+                        {1.0, 0.2, 0.1, 0.05, 0.01} );
+float enveloppeJet(float t) { return enveloppeADSR(0.10,0.3,0.23,0.35,t); }
+
+// Sound model for invisible energy
+float pitchInvisible = 100;
+SoundSpectra spectraInvisible({1,   1.5,   2,   2.5,    3   } ,
+                              {1.0, 0.2, 0.1, 0.05, 0.01} );
+float enveloppeInvisible(float t) { return enveloppeADSR(0.3,0.5,0.5,0.7,t); }
+    
+
+
 
 int main()
 {
@@ -22,7 +45,6 @@ int main()
     // Read input file (list of events)
     //
     
-    /*
     ifstream eventFile("example.dat");
     vector<vector<Particle> > events;
 
@@ -38,7 +60,6 @@ int main()
         }
         events.push_back(particles);
     }
-    */
 
     //
     // Settings for WAV output
@@ -53,52 +74,47 @@ int main()
 
     SndfileHandle outfile(outfilename, SFM_WRITE, format, channels, sampleRate);
     if (not outfile) return -1;
-    
-
 
     //
-    // Some draft to write the WAV
+    // Now writing sound while associating particle from each event to sounds
     //
 
-    /*
-    float eventPerSeconds = 0.333;
-    const int size = sampleRate * events.size() / eventPerSeconds;
-    float sample[size];
-    for (int i=0; i<size; i++) 
-    {
-        //int currentEvent = i / sampleRate;
-        sample[i] = 0;
-
-        // Current plan is to have :
-        // E   : amplitude
-        // Eta : pitch
-        // Id  : harmonics + enveloppe + basis freq
-
-        
-        //for (unsigned int j = 0 ; j < harmonics.size() ; j++)
-        //{
-        //    float amplitude = harmonics[j].first;
-        //    float frequence = harmonics[j].second;
-        //    sample[i] += amplitude * sin(float(i)/sampleRate*(2*M_PI) * frequence);
-        //}
-        
-    }
-    outfile.write(&sample[0], size);
-    */
-
-    SoundSpectra testSpectra({1,   2,   3,   4,    5   } ,
-                             {1.0, 0.2, 0.1, 0.05, 0.01} );
-
-    float totalTime = 1;
-    SoundModel testModel (testSpectra, enveloppeTest, totalTime, 0.55, 100);
-    SoundModel testModel2(testSpectra, enveloppeTest, totalTime, 0.35, 80);
+    int eventDuration = 5; // in second
+    //int numberOfEvents = events.size();
+    int numberOfEvents = 30;
+    const int size = sampleRate * eventDuration * numberOfEvents;
     
-    const int size = sampleRate * totalTime;
     float sample[size];
-    for (int t=0 ; t < size ; t++) 
+    for (int e = 0 ; e < numberOfEvents ; e++) 
     {
-         sample[t] = testModel. play(float(t) / sampleRate)
-                   + testModel2.play(float(t) / sampleRate);
+         // Getting current event
+         vector<Particle> currentEvent = events[e];
+         
+         // Initializing collection of sounds
+         vector<SoundModel> soundsFromParticles;
+
+         // Reading particle in current event and associating a sound for each of them
+         for (unsigned int p = 0 ; p < currentEvent.size() ; p++)
+         {
+                  if (currentEvent[p].getId() == 13)
+                 soundsFromParticles.push_back(SoundModel(spectraMuon,     enveloppeMuon,      eventDuration, currentEvent[p].getE()/400,  pitchMuon * (5 - currentEvent[p].getEta())/5 )); 
+             else if (currentEvent[p].getId() == 11)
+                 soundsFromParticles.push_back(SoundModel(spectraElectron, enveloppeElectron,  eventDuration, currentEvent[p].getE()/400,  pitchElectron * (5 - currentEvent[p].getEta())/5 )); 
+             else if (currentEvent[p].getId() == 21)
+                 soundsFromParticles.push_back(SoundModel(spectraJet,      enveloppeJet,       eventDuration, currentEvent[p].getE()/700,  pitchJet * (5 - currentEvent[p].getEta())/5 )); 
+             else if (currentEvent[p].getId() == 12)
+                 soundsFromParticles.push_back(SoundModel(spectraInvisible,enveloppeInvisible, eventDuration, currentEvent[p].getPt()/300, pitchInvisible )); 
+             }
+         
+         // "Playing" the sound we got from particle, into the output
+         for (int t = 0 ; t < sampleRate * eventDuration ; t++)
+         {
+             sample[t + sampleRate * eventDuration * e ] = 0;
+             for (unsigned int s = 0 ; s < soundsFromParticles.size() ; s++)
+             {
+                 sample[t + sampleRate * eventDuration * e ] += soundsFromParticles[s].play(float(t) / sampleRate);
+             }
+         }
     }
     outfile.write(&sample[0], size);
 
